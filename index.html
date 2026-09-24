@@ -1,4 +1,4 @@
-<title>学習ノ御供 みまもりん</title>
+<title>みまもりん｜紹介ページ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
@@ -73,7 +73,9 @@
   }
 
   .slide {
-    min-height: 100%;
+    /* main に確定した高さがないため % では効かない。セーフエリア分を引いた実寸で指定する */
+    min-height: 100vh;
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     scroll-snap-align: start;
     display: flex;
     align-items: center;
@@ -317,10 +319,16 @@
   }
 
   /* ---- phase ---- */
-  .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: clamp(13px, 1.7vw, 22px); }
-  .phase { position: relative; padding-top: 30px; }
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: clamp(13px, 1.7vw, 22px);
+    align-items: stretch;
+  }
+  .phase { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .phase .card { flex: 1; }
   .phase .tag {
-    position: absolute; top: 0; left: 0;
+    align-self: flex-start;
     font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
     color: var(--accent-deep); border: 1px solid var(--line);
     background: var(--surface); border-radius: 999px; padding: 2px 11px;
@@ -715,7 +723,7 @@
       <div class="phases">
         <div class="phase now">
           <span class="tag">PHASE 0 — 現在</span>
-          <div class="card" style="height:100%">
+          <div class="card">
             <h3>ブラウザ＋Webカメラ</h3>
             <p>追加機材ゼロで検証できる形。仮説そのものを最短で確かめるための構成です。</p>
             <span class="hw">PC / スマートフォン<br>MediaPipe Pose（WASM）</span>
@@ -723,7 +731,7 @@
         </div>
         <div class="phase">
           <span class="tag">PHASE 1</span>
-          <div class="card" style="height:100%">
+          <div class="card">
             <h3>卓上ガジェット</h3>
             <p>机の上に常駐する専用機。PCを占有せず、起動操作も要りません。<strong>電源を入れたら、そこに居る。</strong>物理的な存在感そのものが声かけの説得力になります。</p>
             <span class="hw">候補：Raspberry Pi 5＋Camera Module／<br>ESP32-S3 クラスのMCU＋カメラ<br>小型ディスプレイ・スピーカー</span>
@@ -731,7 +739,7 @@
         </div>
         <div class="phase">
           <span class="tag">PHASE 2</span>
-          <div class="card" style="height:100%">
+          <div class="card">
             <h3>ウェアラブル<br>マルチセンサー</h3>
             <p>心拍・加速度・皮膚温から<strong>疲労の兆候</strong>を捉え、席を立つ前に声をかけます。介入点が「離席後」から「離席前」へ移ります。</p>
             <span class="hw">候補：PPG心拍／IMU／皮膚温<br>オンデバイス推論（TFLite Micro 等）</span>
@@ -739,57 +747,6 @@
         </div>
       </div>
       <p>いずれの段階でも<strong>推論は手元で完結させます。</strong>センサーが増えるほど扱うデータは繊細になるため、エッジで閉じる方針はより重要になります。</p>
-    </div>
-  </section>
-
-  <!-- 14 --------------------------------------------------------------- -->
-  <section class="slide" data-name="拡張設計">
-    <div class="inner split wide-left">
-      <div class="stack">
-        <div>
-          <p class="eyebrow">拡張を支える設計</p>
-          <h2>センサーを足しても、<br>伴走ロジックは書き換えない。</h2>
-        </div>
-        <p>在席情報の入口を <code>PresenceSource</code> という一枚の口にまとめてあります。カメラも、卓上機も、ウェアラブルも、この口に差し込むだけです。</p>
-        <pre>interface PresenceSource {
-  start(listener: (s: {
-    present: boolean; at: number;
-  }) =&gt; void): Promise&lt;void&gt;;
-  stop(): void;
-}</pre>
-      </div>
-      <div class="stack">
-        <div class="card lit">
-          <h3>この設計は、すでに効いている</h3>
-          <p>開発ではまずカメラを使わないモック実装で状態遷移を完成させ、その後 MediaPipe に差し替えました。このとき<strong>判定側のコードは一行も変わっていません。</strong></p>
-        </div>
-        <div class="card">
-          <h3>ハードウェア投資のリスクを下げる</h3>
-          <p>Phase 1・2 で作るのはセンサー側の実装だけです。伴走ロジックと文言は、いま検証している資産をそのまま持ち越せます。</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 15 --------------------------------------------------------------- -->
-  <section class="slide" data-name="検証計画">
-    <div class="inner stack">
-      <div>
-        <p class="eyebrow">実証計画 ／ 何をもって成功とするか</p>
-        <h2>測るのは学習時間ではない。戻ってきたかどうか。</h2>
-      </div>
-      <table>
-        <thead><tr><th>区分</th><th>指標</th><th>狙い</th></tr></thead>
-        <tbody>
-          <tr class="lit"><th>一次指標</th><td>離席から復帰までの時間（中央値）</td><td>呼びかけが「戻る判断」を早めるか</td></tr>
-          <tr><th>二次指標</th><td>離席したセッションのうち、その日のうちに再開できた割合</td><td>学習終了そのものを減らせるか</td></tr>
-          <tr><th>卒業指標</th><td>声かけ頻度を段階的に下げても復帰率が落ちないか</td><td>補助輪を外せるか＝依存させていないか</td></tr>
-        </tbody>
-      </table>
-      <div class="split">
-        <p><strong>検証案：</strong>資格学習中の社内モニター10名程度、4週間。最初の1週間をみまもりんなしの基準期間とし、残り3週間で比較します。</p>
-        <p>学習時間の増加は狙いません。<span class="mark">狙うのは、やめた日を減らすことです。</span>この指標が動けば、ハードウェア化に進む根拠になります。</p>
-      </div>
     </div>
   </section>
 
@@ -815,7 +772,7 @@
 <nav class="rail" id="rail" aria-label="スライド"></nav>
 
 <div class="hud">
-  <span id="counter">1 / 16</span>
+  <span id="counter">1 / 14</span>
   <button type="button" id="prev" aria-label="前のスライド">←</button>
   <button type="button" id="next" aria-label="次のスライド">→</button>
   <button type="button" id="fs">全画面</button>
